@@ -581,8 +581,8 @@ var FSPathPrefix = "/fs"
 var FSRoot = "/tmp"
 var FSDirPermission os.FileMode = 0777
 
-// curl -XPUT --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
-func routePutFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
+// curl -XPOST --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
+func routePostFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
 	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
 
 	dir := filepath.Dir(path)
@@ -669,7 +669,7 @@ func main() {
 	m.Post("/initialize", routePostInitialize)
 
 	m.Group(FSPathPrefix, func(r martini.Router) {
-		m.Put("/(?P<path>[a-zA-Z0-9._/-]+)", routePutFs)
+		m.Post("/(?P<path>[a-zA-Z0-9._/-]+)", routePostFs)
 		m.Delete("/(?P<path>[a-zA-Z0-9._/-]+)", routeDeleteFs)
 		m.Get("/(?P<path>[a-zA-Z0-9._/-]+)", routeGetFs)
 	})
