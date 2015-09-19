@@ -125,8 +125,15 @@ func assetKey(slot string, id string) string {
 const assetBaseDir = "/var/tmp/isu4"
 
 func initAssetBaseDir() {
-	os.RemoveAll(assetBaseDir)
-	os.MkdirAll(assetBaseDir, os.ModePerm)
+	err := os.RemoveAll(assetBaseDir)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.MkdirAll(assetBaseDir, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func assetFile(slot string, id string) string {
