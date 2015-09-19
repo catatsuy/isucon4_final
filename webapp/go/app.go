@@ -95,6 +95,15 @@ func urlFor(req *http.Request, path string) string {
 	}
 }
 
+func urlFor2(req *http.Request, path string) string {
+	rnd := rand.Int() % 3
+	host := internalIP[rnd]
+	if host != "" {
+		return "http://" + host + path
+	} else {
+		return path
+	}
+}
 func fetch(hash map[string]string, key string, defaultValue string) string {
 	if hash[key] == "" {
 		return defaultValue
@@ -180,8 +189,6 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 		return nil
 	}
 
-	rnd := rand.Int() % 3
-
 	imp, _ := strconv.Atoi(m["impressions"])
 	path_base := "/slots/" + slot + "/ads/" + id
 	var ad *AdWithEndpoints
@@ -195,7 +202,7 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 			m["destination"],
 			imp,
 		},
-		urlFor(req, "http://"+internalIP[rnd]+path_base+"/asset"),
+		urlFor2(req, path_base+"/asset"),
 		urlFor(req, path_base+"/redirect"),
 		urlFor(req, path_base+"/count"),
 	}
