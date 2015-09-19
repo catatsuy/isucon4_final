@@ -3,10 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
@@ -57,11 +61,14 @@ type BreakdownReport struct {
 
 var rd *redis.Client
 
+var port = flag.Uint("port", 0, "port to listen")
+
 func init() {
 	rd = redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 		DB:   0,
 	})
+	flag.Parse()
 }
 
 func getDir(name string) string {
@@ -563,5 +570,36 @@ func main() {
 		m.Get("/final_report", routeGetFinalReport)
 	})
 	m.Post("/initialize", routePostInitialize)
-	http.ListenAndServe(":8080", m)
+
+	sigchan := make(chan os.Signal)
+	signal.Notify(sigchan, syscall.SIGTERM)
+	signal.Notify(sigchan, syscall.SIGINT)
+
+	var l net.Listener
+	var err error
+	sock := "/tmp/server.sock"
+	if *port == 0 {
+		ferr := os.Remove(sock)
+		if ferr != nil {
+			if !os.IsNotExist(ferr) {
+				panic(ferr.Error())
+			}
+		}
+		l, err = net.Listen("unix", sock)
+		cerr := os.Chmod(sock, 0666)
+		if cerr != nil {
+			panic(cerr.Error())
+		}
+	} else {
+		l, err = net.ListenTCP("tcp", &net.TCPAddr{Port: int(*port)})
+	}
+	if err != nil {
+		panic(err.Error())
+	}
+	go func() {
+		// func Serve(l net.Listener, handler Handler) error
+		log.Println(http.Serve(l, m))
+	}()
+
+	<-sigchan
 }
