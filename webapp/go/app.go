@@ -66,6 +66,10 @@ type BreakdownReport struct {
 var rd *redis.Client
 
 var port = flag.Uint("port", 0, "port to listen")
+var isMaster = flag.Bool("master", false, "is master?")
+
+var globalIP []string = []string{"130.211.255.138", "104.155.201.2", "130.211.251.102"}
+var internalIP []string = []string{"10.240.0.2", "10.240.0.3", "10.240.0.4"}
 
 func init() {
 	rd = redis.NewClient(&redis.Options{
@@ -309,6 +313,19 @@ func routePostAd(r render.Render, req *http.Request, params martini.Params) {
 	if err != nil {
 		panic(err)
 	}
+
+	if *isMaster {
+		for i, ip := range internalIP {
+			if i == 0 {
+				continue
+			}
+			_, err := http.Post("http://"+ip+"/fs/"+assetFile(slot, id), content_type, bytes.NewReader(buf.Bytes()))
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	rd.RPush(slotKey(slot), id)
 	rd.SAdd(advertiserKey(advrId), key)
 
@@ -578,7 +595,7 @@ func routePostInitialize() (int, string) {
 }
 
 var FSPathPrefix = "/fs"
-var FSRoot = "/tmp"
+var FSRoot = "/"
 var FSDirPermission os.FileMode = 0777
 
 // curl -XPOST --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
