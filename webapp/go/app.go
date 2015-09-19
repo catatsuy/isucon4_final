@@ -319,7 +319,7 @@ func routePostAd(r render.Render, req *http.Request, params martini.Params) {
 			if i == 0 {
 				continue
 			}
-			_, err := http.Post("http://"+ip+"/fs/"+assetFile(slot, id), content_type, bytes.NewReader(buf.Bytes()))
+			_, err := http.Post("http://"+ip+"/fs"+assetFile(slot, id), content_type, bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				panic(err)
 			}
