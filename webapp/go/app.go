@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -549,6 +550,72 @@ func routePostInitialize() (int, string) {
 	return 200, "OK"
 }
 
+var FSPathPrefix = "/fs"
+var FSRoot = "/tmp"
+var FSDirPermission os.FileMode = 0777
+
+func routePutFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
+	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
+
+	dir := filepath.Dir(path)
+	log.Println(dir)
+	err := os.MkdirAll(dir, FSDirPermission)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	written, err := io.Copy(file, r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Println(written)
+
+	return
+}
+
+func routeDeleteFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
+	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
+
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "", http.StatusNotFound)
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if info.IsDir() {
+		err = os.RemoveAll(path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+	return
+}
+
+func routeGetFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
+	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
+	http.ServeFile(w, r, path)
+	return
+}
+
 func main() {
 	m := martini.Classic()
 
@@ -570,6 +637,12 @@ func main() {
 		m.Get("/final_report", routeGetFinalReport)
 	})
 	m.Post("/initialize", routePostInitialize)
+
+	m.Group(FSPathPrefix, func(r martini.Router) {
+		m.Put("/(?P<path>[a-zA-Z0-9._/-]+)", routePutFs)
+		m.Delete("/(?P<path>[a-zA-Z0-9._/-]+)", routeDeleteFs)
+		m.Get("/(?P<path>[a-zA-Z0-9._/-]+)", routeGetFs)
+	})
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, syscall.SIGTERM)
