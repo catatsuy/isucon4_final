@@ -554,6 +554,7 @@ var FSPathPrefix = "/fs"
 var FSRoot = "/tmp"
 var FSDirPermission os.FileMode = 0777
 
+// curl -XPUT --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
 func routePutFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
 	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
 
@@ -582,6 +583,7 @@ func routePutFs(rdr render.Render, w http.ResponseWriter, r *http.Request, param
 	return
 }
 
+// curl -XDELETE -v http://127.0.0.1:8080/fs/foo
 func routeDeleteFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
 	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
 
@@ -610,6 +612,7 @@ func routeDeleteFs(rdr render.Render, w http.ResponseWriter, r *http.Request, pa
 	return
 }
 
+// curl -XDELETE -v http://127.0.0.1:8080/fs/foo
 func routeGetFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
 	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
 	http.ServeFile(w, r, path)
