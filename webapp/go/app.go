@@ -18,7 +18,6 @@ import (
 	"syscall"
 
 	"io/ioutil"
-	"os/exec"
 
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
@@ -126,15 +125,8 @@ func assetKey(slot string, id string) string {
 const assetBaseDir = "/var/tmp/isu4"
 
 func initAssetBaseDir() {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir))
-	err := cmd.Start()
-	if err != nil {
-		panic(err)
-	}
-	err = cmd.Wait()
-	if err != nil {
-		panic(err)
-	}
+	os.RemoveAll(assetBaseDir)
+	os.MkdirAll(assetBaseDir, os.ModePerm)
 }
 
 func assetFile(slot string, id string) string {
