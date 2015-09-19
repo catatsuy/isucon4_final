@@ -179,6 +179,8 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 		return nil
 	}
 
+	rnd := rand.Int() % 3
+
 	imp, _ := strconv.Atoi(m["impressions"])
 	path_base := "/slots/" + slot + "/ads/" + id
 	var ad *AdWithEndpoints
@@ -192,7 +194,7 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 			m["destination"],
 			imp,
 		},
-		urlFor(req, path_base+"/asset"),
+		urlFor(req, "http://"+internalIP[rnd]+path_base+"/asset"),
 		urlFor(req, path_base+"/redirect"),
 		urlFor(req, path_base+"/count"),
 	}
