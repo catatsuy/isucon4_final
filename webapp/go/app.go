@@ -94,8 +94,9 @@ func urlFor(req *http.Request, path string) string {
 	}
 }
 
-func urlFor2(path string, id int) string {
-	host := internalIP[id%3]
+func urlFor2(path string, id string) string {
+	i, _ := strconv.Atoi(id)
+	host := internalIP[i%3]
 	if host != "" {
 		return "http://" + host + path
 	} else {
