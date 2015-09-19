@@ -17,11 +17,12 @@ import (
 	"strings"
 	"syscall"
 
+	"io/ioutil"
+	"os/exec"
+
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	redis "gopkg.in/redis.v3"
-	"io/ioutil"
-	"os/exec"
 )
 
 type Ad struct {
@@ -121,7 +122,7 @@ func assetKey(slot string, id string) string {
 const assetBaseDir = "/var/tmp/isu4"
 
 func initAssetBaseDir() {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir));
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir))
 	err := cmd.Start()
 	if err != nil {
 		panic(err)
@@ -133,7 +134,7 @@ func initAssetBaseDir() {
 }
 
 func assetFile(slot string, id string) string {
-	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4";
+	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4"
 }
 
 func advertiserKey(id string) string {
