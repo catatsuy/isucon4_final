@@ -138,7 +138,7 @@ func initAssetBaseDir() {
 }
 
 func assetFile(slot string, id string) string {
-	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4"
+	return assetBaseDir + "/slots/" + slot + "/ads/" + id + "/asset"
 }
 
 func advertiserKey(id string) string {
@@ -309,7 +309,12 @@ func routePostAd(r render.Render, req *http.Request, params martini.Params) {
 	buf := bytes.NewBuffer(nil)
 	io.Copy(buf, f)
 
-	err := ioutil.WriteFile(assetFile(slot, id), buf.Bytes(), os.ModePerm)
+	fname := assetFile(slot, id)
+	err := os.MkdirAll(filepath.Dir(fname), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(fname, buf.Bytes(), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
