@@ -17,11 +17,12 @@ import (
 	"strings"
 	"syscall"
 
+	"io/ioutil"
+	"os/exec"
+
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	redis "gopkg.in/redis.v3"
-	"io/ioutil"
-	"os/exec"
 )
 
 type Ad struct {
@@ -65,6 +66,10 @@ type BreakdownReport struct {
 var rd *redis.Client
 
 var port = flag.Uint("port", 0, "port to listen")
+var isMaster = flag.Bool("master", false, "is master?")
+
+var globalIP []string = []string{"130.211.255.138", "104.155.201.2", "130.211.251.102"}
+var internalIP []string = []string{"10.240.0.2", "10.240.0.3", "10.240.0.4"}
 
 func init() {
 	rd = redis.NewClient(&redis.Options{
@@ -121,7 +126,7 @@ func assetKey(slot string, id string) string {
 const assetBaseDir = "/var/tmp/isu4"
 
 func initAssetBaseDir() {
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir));
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir))
 	err := cmd.Start()
 	if err != nil {
 		panic(err)
@@ -133,7 +138,7 @@ func initAssetBaseDir() {
 }
 
 func assetFile(slot string, id string) string {
-	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4";
+	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4"
 }
 
 func advertiserKey(id string) string {
@@ -308,6 +313,19 @@ func routePostAd(r render.Render, req *http.Request, params martini.Params) {
 	if err != nil {
 		panic(err)
 	}
+
+	if *isMaster {
+		for i, ip := range internalIP {
+			if i == 0 {
+				continue
+			}
+			_, err := http.Post("http://"+ip+"/fs"+assetFile(slot, id), content_type, bytes.NewReader(buf.Bytes()))
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	rd.RPush(slotKey(slot), id)
 	rd.SAdd(advertiserKey(advrId), key)
 
@@ -573,15 +591,33 @@ func routePostInitialize() (int, string) {
 	os.RemoveAll(path)
 	initAssetBaseDir()
 
+	if *isMaster {
+		for i, ip := range internalIP {
+			if i == 0 {
+				continue
+			}
+			_, err := http.Post("http://"+ip+"/initialize_slave", "", nil)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	return 200, "OK"
+}
+
+func routePostInitializeSlave() (int, string) {
+	initAssetBaseDir()
+
 	return 200, "OK"
 }
 
 var FSPathPrefix = "/fs"
-var FSRoot = "/tmp"
+var FSRoot = "/"
 var FSDirPermission os.FileMode = 0777
 
-// curl -XPUT --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
-func routePutFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
+// curl -XPOST --data-binary "hoge" -v http://127.0.0.1:8080/fs/foo
+func routePostFs(rdr render.Render, w http.ResponseWriter, r *http.Request, params martini.Params) {
 	path := FSRoot + strings.TrimPrefix(r.URL.Path, FSPathPrefix)
 
 	dir := filepath.Dir(path)
@@ -666,9 +702,10 @@ func main() {
 		m.Get("/final_report", routeGetFinalReport)
 	})
 	m.Post("/initialize", routePostInitialize)
+	m.Post("/initialize_slave", routePostInitializeSlave)
 
 	m.Group(FSPathPrefix, func(r martini.Router) {
-		m.Put("/(?P<path>[a-zA-Z0-9._/-]+)", routePutFs)
+		m.Post("/(?P<path>[a-zA-Z0-9._/-]+)", routePostFs)
 		m.Delete("/(?P<path>[a-zA-Z0-9._/-]+)", routeDeleteFs)
 		m.Get("/(?P<path>[a-zA-Z0-9._/-]+)", routeGetFs)
 	})
