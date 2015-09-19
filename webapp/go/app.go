@@ -18,7 +18,6 @@ import (
 	"syscall"
 
 	"io/ioutil"
-	"math/rand"
 
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
@@ -95,9 +94,8 @@ func urlFor(req *http.Request, path string) string {
 	}
 }
 
-func urlFor2(req *http.Request, path string) string {
-	rnd := rand.Int() % 3
-	host := internalIP[rnd]
+func urlFor2(path string, id int) string {
+	host := internalIP[id%3]
 	if host != "" {
 		return "http://" + host + path
 	} else {
@@ -202,7 +200,7 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 			m["destination"],
 			imp,
 		},
-		urlFor2(req, path_base+"/asset"),
+		urlFor2(path_base+"/asset", id),
 		urlFor(req, path_base+"/redirect"),
 		urlFor(req, path_base+"/count"),
 	}
