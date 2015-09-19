@@ -591,6 +591,24 @@ func routePostInitialize() (int, string) {
 	os.RemoveAll(path)
 	initAssetBaseDir()
 
+	if *isMaster {
+		for i, ip := range internalIP {
+			if i == 0 {
+				continue
+			}
+			_, err := http.Post("http://"+ip+"/initialize_slave", "", nil)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	return 200, "OK"
+}
+
+func routePostInitializeSlave() (int, string) {
+	initAssetBaseDir()
+
 	return 200, "OK"
 }
 
@@ -684,6 +702,7 @@ func main() {
 		m.Get("/final_report", routeGetFinalReport)
 	})
 	m.Post("/initialize", routePostInitialize)
+	m.Post("/initialize_slave", routePostInitializeSlave)
 
 	m.Group(FSPathPrefix, func(r martini.Router) {
 		m.Post("/(?P<path>[a-zA-Z0-9._/-]+)", routePostFs)
