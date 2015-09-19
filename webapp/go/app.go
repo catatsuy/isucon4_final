@@ -94,6 +94,15 @@ func urlFor(req *http.Request, path string) string {
 	}
 }
 
+func urlFor2(path string, id string) string {
+	i, _ := strconv.Atoi(id)
+	host := internalIP[i%3]
+	if host != "" {
+		return "http://" + host + path
+	} else {
+		return path
+	}
+}
 func fetch(hash map[string]string, key string, defaultValue string) string {
 	if hash[key] == "" {
 		return defaultValue
@@ -192,7 +201,7 @@ func getAd(req *http.Request, slot string, id string) *AdWithEndpoints {
 			m["destination"],
 			imp,
 		},
-		urlFor(req, path_base+"/asset"),
+		urlFor2(path_base+"/asset", id),
 		urlFor(req, path_base+"/redirect"),
 		urlFor(req, path_base+"/count"),
 	}
