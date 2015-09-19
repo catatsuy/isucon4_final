@@ -18,6 +18,7 @@ import (
 	"syscall"
 
 	"io/ioutil"
+	"math/rand"
 
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
