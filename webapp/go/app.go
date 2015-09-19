@@ -20,6 +20,8 @@ import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	redis "gopkg.in/redis.v3"
+	"io/ioutil"
+	"os/exec"
 )
 
 type Ad struct {
@@ -114,6 +116,24 @@ func adKey(slot string, id string) string {
 
 func assetKey(slot string, id string) string {
 	return "isu4:asset:" + slot + "-" + id
+}
+
+const assetBaseDir = "/var/tmp/isu4"
+
+func initAssetBaseDir() {
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("rm -rf %s && mkdir -p %s", assetBaseDir, assetBaseDir));
+	err := cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Wait()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func assetFile(slot string, id string) string {
+	return assetBaseDir + "/isu4-asset-" + slot + "-" + id + ".mp4";
 }
 
 func advertiserKey(id string) string {
@@ -283,9 +303,11 @@ func routePostAd(r render.Render, req *http.Request, params martini.Params) {
 	defer f.Close()
 	buf := bytes.NewBuffer(nil)
 	io.Copy(buf, f)
-	asset_data := string(buf.Bytes())
 
-	rd.Set(assetKey(slot, id), asset_data, 0)
+	err := ioutil.WriteFile(assetFile(slot, id), buf.Bytes(), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 	rd.RPush(slotKey(slot), id)
 	rd.SAdd(advertiserKey(advrId), key)
 
@@ -327,7 +349,10 @@ func routeGetAdAsset(r render.Render, res http.ResponseWriter, req *http.Request
 	}
 
 	res.Header().Set("Content-Type", content_type)
-	data, _ := rd.Get(assetKey(slot, id)).Result()
+	data, err := ioutil.ReadFile(assetFile(slot, id))
+	if err != nil {
+		panic(err)
+	}
 
 	range_str := req.Header.Get("Range")
 	if range_str == "" {
@@ -546,6 +571,7 @@ func routePostInitialize() (int, string) {
 	}
 	path := getDir("log")
 	os.RemoveAll(path)
+	initAssetBaseDir()
 
 	return 200, "OK"
 }
